@@ -81,12 +81,15 @@ def scrap_subreddit(params, subreddit_db, subreddit, stdout=True):
             stdout=stdout)
         subreddit_db.insert_threads(data)
         pages += 1
+        yield data
         time.sleep(params_crawler["sleep_time_per_page"])
+    return None
 
 
 def main(subreddit, stdout=True):
-    print(f"[bold red] {subreddit.capitalize()} [/bold red]")
-    print(f"[bold red] {'-'*len(subreddit)}[bold red]")
+    if stdout:
+        print(f"[bold red] {subreddit.capitalize()} [/bold red]")
+        print(f"[bold red] {'-'*len(subreddit)}[bold red]")
     with open("params.yaml", "r") as f:
         params = yaml.load(f, Loader=yaml.FullLoader)
     params_db = params["db"]
@@ -100,18 +103,33 @@ def main(subreddit, stdout=True):
         last_updated = threads[0][0]
         should_scrap = int(time.time() - last_updated)/60 > cache_timeout
     if should_scrap:
-        scrap_subreddit(params, subreddit_db, subreddit, stdout=stdout)
-        return
-    if stdout:
+        data = scrap_subreddit(params, subreddit_db, subreddit, stdout=stdout)
+        for _ in data:
+            yield data
+    else:
+        data = []
         for thread in threads:
-            print("\n")
-            print_thread(
-                thread[2], thread[3], thread[4], thread[5]
-            )
+            if stdout:
+                print("\n")
+                print_thread(
+                    thread[2], thread[3], thread[4], thread[5]
+                )
+            data += [
+                {
+                    "subreddit": subreddit,
+                    "title": thread[3],
+                    "score": thread[2],
+                    "thread_link": thread[4],
+                    "comment_link": thread[5]
+                }
+            ]
+        yield data
+    return None
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("subreddit", help="Subreddit to scrape")
     args = parser.parse_args()
-    main(args.subreddit)
+    for _ in main(args.subreddit):
+        pass

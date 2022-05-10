@@ -3,7 +3,7 @@ crawler:
   sleep_time_per_page: 0.1 # seconds
   max_paginations: 10 # 10 max paginations
 db:
-  cache_timeout: 60
+  cache_timeout: 600
 beautiful_soup:
   use_lxml: true
   headers:
@@ -19,6 +19,6 @@ beautiful_soup:
     sponsored: '//img[@src="//www.redditstatic.com/icon-sponsored-rank.png"]'
     next_button: '//*[@id="siteTable"]//a[@rel="nofollow next"]'
 reddit:
-  links_from: "day" # "day" # "hour" # "week#W
+  links_from: "week" # "day" # "hour" # "week#W
   base_url: "https://old.reddit.com/"
   min_score: 5000

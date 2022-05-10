@@ -48,6 +48,12 @@ install:
 ## Cria o banco de dados
 create-db:
 	python3 src/db/migration.py --create
+
+
+## @category Telegram
+## Inicia o bot telegram
+bot-start:
+	python3 src/telegram/app.py
 ## @category Users
 ## Executa o programa usando os parâmetros dentro de params.yaml
 run:

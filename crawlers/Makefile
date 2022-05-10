@@ -44,7 +44,10 @@ install:
 	pip install -r requirements.txt
 	python3 setup.py develop
 
-
+## @category Users
+## Cria o banco de dados
+create-db:
+	python3 src/db/migration.py --create
 ## @category Users
 ## Executa o programa usando os parâmetros dentro de params.yaml
 run:

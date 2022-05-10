@@ -6,58 +6,19 @@ from rich import print
 import requests
 import yaml
 
-from src.reddit.preprocessing import convert_numk2int, check_sponsored
+from src.reddit.preprocessing import check_sponsored
+from src.reddit.transforms import extract_title, extract_comment_link, extract_score
+from src.db.orm import SubredditDb
 
 
-def extract_title(thread, params_bs):
-    """Get the title and the url of the thread.
-
-    Args:
-        thread (lxml.etree.Element): The thread to extract the title from.
-        params_bs (dict): The parameters for BeautifulSoup.
-    Returns:
-        (str, str): The title and the url of the thread.
-
-    """
-    title_el = thread.xpath(params_bs["xpath"]["title"])[0]
-    title = title_el.text
-    thread_link = title_el.get("href")
-    return title, thread_link
-
-
-def extract_comment_link(thread, params_bs):
-    """Get the link to the comments of the thread.
-    
-    Args:
-        thread (lxml.etree.Element): The thread to extract the title from.
-        params_bs (dict): The parameters for BeautifulSoup.
-    Returns:
-        (str): The link to the comments of the thread.
-    
-    """
-    comments = thread.xpath(params_bs["xpath"]["comments"])[0]
-    comments_link = comments.get("href")
-    return comments_link
-
-
-def extract_score(thread, params_bs):
-    """Get the score of the thread and check if it is valid.
-
-    Args:
-        thread (lxml.etree.Element): The thread to extract the title from.
-        params_bs (dict): The parameters for BeautifulSoup.
-    Returns:
-        (int): The score of the thread.
-        (bool): True if the score is not valid
-    """
-
-    score = thread.xpath(params_bs["xpath"]["score_unvoted"])[0].text
-    score, discard = convert_numk2int(score)
-    return score, discard
+def print_thread(score, title, thread_link, comment_link):
+    print(f"[bold blue]Score: {score}[/bold blue]|[green]{title}[/green]")
+    print(f"\t[bold red]Thread:  [bold /red] {thread_link}")
+    print(f"\t[bold gray]Comment:[bold /gray] {comment_link}")
 
 
 def get_subreddit_page_info(
-        url, headers, params_bs, params_reddit, stdout=True):
+        url, headers, params_bs, params_reddit, stdout=True, subreddit=""):
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
         raise Exception(f"Request to {url} failed with status code {response.status_code}")
@@ -67,11 +28,6 @@ def get_subreddit_page_info(
     reddit_threads = dom.xpath(params_bs["xpath"]["threads"])
     # reddit_threads = soup.find_all("div", class_=params_bs["class"]["threads"])
     # print votes, title
-    if stdout:
-        print(f"[bold green] {len(reddit_threads)} threads found [/bold green]")
-        print("\n")
-        print(f"[blue]Vote{' '*5}[/blue]|[green]Title{' '*80}[/green]")
-        print("-"*len(f"Vote{' '*5}| Title{' '*80}"))
     data = []
     for thread in reddit_threads:
         sponsored = check_sponsored(thread)
@@ -89,6 +45,7 @@ def get_subreddit_page_info(
         comment_link = extract_comment_link(thread, params_bs)
         data += [
             {
+                "subreddit": subreddit,
                 "title": title,
                 "score": score,
                 "thread_link": thread_link,
@@ -97,7 +54,8 @@ def get_subreddit_page_info(
         ]
         thread.clear()
         if stdout:
-            print(f"[bold blue]{score:<9}[/bold blue]|[green]{title:<50}[/green]")
+            print("\n")
+            print_thread(score, title, thread_link, comment_link)
     next_page_el = dom.xpath(params_bs["xpath"]["next_button"])
     if next_page_el:
         next_page_link = next_page_el[0].get("href")
@@ -105,11 +63,7 @@ def get_subreddit_page_info(
     return data, None
 
 
-def main(subreddit):
-    print(f"[bold red] {subreddit.capitalize()} [/bold red]")
-    print(f"[bold red] {'-'*len(subreddit)}[bold red]")
-    with open("params.yaml", "r") as f:
-        params = yaml.load(f, Loader=yaml.FullLoader)
+def scrap_subreddit(params, subreddit_db, subreddit, stdout=True): 
     params_crawler = params["crawler"]
     params_bs = params["beautiful_soup"]
     params_reddit = params["reddit"]
@@ -122,9 +76,33 @@ def main(subreddit):
     pages = 0
     while next_page_link and pages < params_crawler["max_paginations"]:
         data, next_page_link = get_subreddit_page_info(
-            next_page_link, headers, params_bs, params_reddit)
+            next_page_link, headers, params_bs, params_reddit,
+            subreddit=subreddit,
+            stdout=stdout)
+        subreddit_db.insert_threads(data)
         pages += 1
         time.sleep(params_crawler["sleep_time_per_page"])
+
+
+def main(subreddit, stdout=True):
+    print(f"[bold red] {subreddit.capitalize()} [/bold red]")
+    print(f"[bold red] {'-'*len(subreddit)}[bold red]")
+    with open("params.yaml", "r") as f:
+        params = yaml.load(f, Loader=yaml.FullLoader)
+    params_db = params["db"]
+    cache_timeout = params_db["cache_timeout"]
+    subreddit_db = SubredditDb()
+    threads = subreddit_db.fetch_threads(subreddit)
+    last_updated = threads[0][0]
+    if int(time.time() - last_updated)/60 > cache_timeout:
+        scrap_subreddit(params, subreddit_db, subreddit, stdout=stdout)
+        return
+    if stdout:
+        for thread in threads:
+            print("\n")
+            print_thread(
+                thread[2], thread[3], thread[4], thread[5]
+            )
 
 
 if __name__ == "__main__":

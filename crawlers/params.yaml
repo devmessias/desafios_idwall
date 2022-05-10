@@ -2,6 +2,8 @@ crawler:
   max_parallel: 10 # 10000 max reddis connections
   sleep_time_per_page: 0.5 # seconds
   max_paginations: 10 # 10 max paginations
+db:
+  cache_timeout: 60
 beautiful_soup:
   use_lxml: true
   headers:

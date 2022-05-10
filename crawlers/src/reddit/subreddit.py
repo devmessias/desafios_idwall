@@ -93,8 +93,13 @@ def main(subreddit, stdout=True):
     cache_timeout = params_db["cache_timeout"]
     subreddit_db = SubredditDb()
     threads = subreddit_db.fetch_threads(subreddit)
-    last_updated = threads[0][0]
-    if int(time.time() - last_updated)/60 > cache_timeout:
+    should_scrap = False
+    if not threads:
+        should_scrap = True
+    else:
+        last_updated = threads[0][0]
+        should_scrap = int(time.time() - last_updated)/60 > cache_timeout
+    if should_scrap:
         scrap_subreddit(params, subreddit_db, subreddit, stdout=stdout)
         return
     if stdout:

@@ -1,6 +1,6 @@
 crawler:
   max_parallel: 10 # 10000 max reddis connections
-  sleep_time_per_page: 0.5 # seconds
+  sleep_time_per_page: 0.1 # seconds
   max_paginations: 10 # 10 max paginations
 db:
   cache_timeout: 60

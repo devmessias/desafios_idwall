@@ -1,4 +1,5 @@
 import argparse
+import time
 from bs4 import BeautifulSoup
 from lxml import etree
 from rich import print
@@ -55,16 +56,8 @@ def extract_score(thread, params_bs):
     return score, discard
 
 
-def main(subreddit):
-    with open("params.yaml", "r") as f:
-        params = yaml.load(f, Loader=yaml.FullLoader)
-    params_bs = params["beautiful_soup"]
-    params_reddit = params["reddit"]
-
-    headers = params_bs["headers"]
-    base_url = f"{params_reddit['base_url']}/r/{subreddit}/"
-    query_params = f"sort=top&t={params_reddit['links_from']}"
-    url = f"{base_url}?{query_params}"
+def get_subreddit_page_info(
+        url, headers, params_bs, params_reddit, stdout=True):
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
         raise Exception(f"Request to {url} failed with status code {response.status_code}")
@@ -74,12 +67,11 @@ def main(subreddit):
     reddit_threads = dom.xpath(params_bs["xpath"]["threads"])
     # reddit_threads = soup.find_all("div", class_=params_bs["class"]["threads"])
     # print votes, title
-    print(f"[bold red] {subreddit.capitalize()} [/bold red]")
-    print(f"[bold red] {'-'*len(subreddit)}[bold red]")
-    print(f"[bold green] {len(reddit_threads)} threads found [/bold green]")
-    print("\n")
-    print(f"[blue]Vote{' '*5}[/blue]|[green]Title{' '*80}[/green]")
-    print("-"*len(f"Vote{' '*5}| Title{' '*80}"))
+    if stdout:
+        print(f"[bold green] {len(reddit_threads)} threads found [/bold green]")
+        print("\n")
+        print(f"[blue]Vote{' '*5}[/blue]|[green]Title{' '*80}[/green]")
+        print("-"*len(f"Vote{' '*5}| Title{' '*80}"))
     data = []
     for thread in reddit_threads:
         sponsored = check_sponsored(thread)
@@ -104,8 +96,36 @@ def main(subreddit):
             }
         ]
         thread.clear()
-        print(f"[bold blue]{score:<9}[/bold blue]|[green]{title:<50}[/green]")
-    
+        if stdout:
+            print(f"[bold blue]{score:<9}[/bold blue]|[green]{title:<50}[/green]")
+    next_page_el = dom.xpath(params_bs["xpath"]["next_button"])
+    if next_page_el:
+        next_page_link = next_page_el[0].get("href")
+        return data, next_page_link
+    return data, None
+
+
+def main(subreddit):
+    print(f"[bold red] {subreddit.capitalize()} [/bold red]")
+    print(f"[bold red] {'-'*len(subreddit)}[bold red]")
+    with open("params.yaml", "r") as f:
+        params = yaml.load(f, Loader=yaml.FullLoader)
+    params_crawler = params["crawler"]
+    params_bs = params["beautiful_soup"]
+    params_reddit = params["reddit"]
+
+    headers = params_bs["headers"]
+    base_url = f"{params_reddit['base_url']}/r/{subreddit}/"
+    query_params = f"sort=top&t={params_reddit['links_from']}"
+    url = f"{base_url}?{query_params}"
+    next_page_link = url
+    pages = 0
+    while next_page_link and pages < params_crawler["max_paginations"]:
+        data, next_page_link = get_subreddit_page_info(
+            next_page_link, headers, params_bs, params_reddit)
+        pages += 1
+        time.sleep(params_crawler["sleep_time_per_page"])
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -38,3 +38,6 @@ talvez dentro de um YAML
 - O robô deveria ser capaz de invocar o crawler que só deveria realizar a captura se dados os requisitos de cache não estiverem ok.
 - O robô não deveria ser acoplado ao crawler, por exemplo, eles poderiam estar inclusive máquinas diferentes, mas compartilhando o mesmo banco de dados seja esse banco qual for.
 - Alguma maneira de monitorar se o robô está "vivo" (CRON?), ligar se o robô estiver offline, etc.
+
+
+sponsored-indicator rank

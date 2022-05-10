@@ -1,8 +1,8 @@
 redis
 pyyaml
-scrapy
 python-telegram-bot
 python-dotenv
 beautifulsoup4
 requests
 lxml
+rich

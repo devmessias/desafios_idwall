@@ -8,7 +8,7 @@ repos:
         require_serial: true
         language: system
         types: [python]
-        args: ['tests', '--benchmark-skip']
+        args: ['crawler/tests', '--benchmark-skip']
         pass_filenames: false
       - id: flake8
         name: flake8

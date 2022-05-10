@@ -1,0 +1,19 @@
+crawler:
+  max_parallel: 10 # 10000 max reddis connections
+beautiful_soup:
+  use_lxml: true
+  headers:
+    User-Agent: 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1'
+  class:
+    threads: "thing"
+  xpath:
+    #threads: '//*[@id="siteTable"]/div[contains(@class, "thing") and not(contains(@class, "promoted"))]'
+    threads: '//*[@id="siteTable"]/div[contains(@class, "thing")]'
+    title: '//a[contains(@class, "title")]'
+    comments: '//a[contains(@data-event-action, "comments")]'
+    score_unvoted: '//div[contains(@class, "score unvoted")]'
+    sponsored: '//img[@src="//www.redditstatic.com/icon-sponsored-rank.png"]'
+reddit:
+  links_from: "day" # "day" # "hour" # "week#W
+  base_url: "https://old.reddit.com/"
+  min_score: 5000

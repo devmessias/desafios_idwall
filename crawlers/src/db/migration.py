@@ -8,7 +8,7 @@ def create(local="reddit.db"):
     Args:
         local (str): The path to the database.
     """
-    con = sqlite3.connect('reddit.db')
+    con = sqlite3.connect(local)
     cur = con.cursor()
     cur.execute("DROP TABLE IF EXISTS subreddits;")
     cur.execute('''

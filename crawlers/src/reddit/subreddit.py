@@ -1,4 +1,5 @@
 import argparse
+import logging
 import time
 from bs4 import BeautifulSoup
 from lxml import etree
@@ -11,10 +12,17 @@ from src.reddit.transforms import extract_title, extract_comment_link, extract_s
 from src.db.orm import SubredditDb
 
 
-def print_thread(score, title, thread_link, comment_link):
-    print(f"[bold blue]Score: {score}[/bold blue]|[green]{title}[/green]")
-    print(f"\t[bold red]Thread:  [bold /red] {thread_link}")
-    print(f"\t[bold gray]Comment:[bold /gray] {comment_link}")
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+
+def print_thread(subreddit, score, title, thread_link, comment_link):
+    print(f"[bold blue]\t({subreddit})Score: {score}[/bold blue]|[green]{title}[/green]")
+    print(f"\t[bold red]Thread: {thread_link}[bold /red]")
+    print(f"\t[yellow]Comment: {comment_link}[/yellow]")
 
 
 def get_subreddit_page_info(
@@ -55,7 +63,8 @@ def get_subreddit_page_info(
         thread.clear()
         if stdout:
             print("\n")
-            print_thread(score, title, thread_link, comment_link)
+            print_thread(
+                subreddit, score, title, thread_link, comment_link)
     next_page_el = dom.xpath(params_bs["xpath"]["next_button"])
     if next_page_el:
         next_page_link = next_page_el[0].get("href")
@@ -75,6 +84,7 @@ def scrap_subreddit(params, subreddit_db, subreddit, stdout=True):
     next_page_link = url
     pages = 0
     while next_page_link and pages < params_crawler["max_paginations"]:
+        logger.debug(f"Scraping {next_page_link}")
         data, next_page_link = get_subreddit_page_info(
             next_page_link, headers, params_bs, params_reddit,
             subreddit=subreddit,
@@ -112,7 +122,7 @@ def main(subreddit, stdout=True):
             if stdout:
                 print("\n")
                 print_thread(
-                    thread[2], thread[3], thread[4], thread[5]
+                    subreddit, thread[2], thread[3], thread[4], thread[5]
                 )
             data += [
                 {
@@ -130,6 +140,12 @@ def main(subreddit, stdout=True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("subreddit", help="Subreddit to scrape")
+    parser.add_argument(
+        "--stdout", action="store_false", help="Print to stdout", default=True)
+    parser.add_argument(
+        "--debug", action="store_true", help="set looger debug info", default=False)
     args = parser.parse_args()
-    for _ in main(args.subreddit):
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+    for _ in main(args.subreddit, args.stdout):
         pass

@@ -2,6 +2,7 @@ import logging
 from dotenv import dotenv_values
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from src.reddit.subreddit import main as subreddit_get
+from src.db.migration import create as create_db
 
 
 config = dotenv_values(".env")
@@ -20,6 +21,12 @@ def help(update, context):
     update.message.reply_text('Help!')
 
 
+def ressetdb(update, context):
+    """Send a message when the command /help is issued."""
+    create_db()
+    update.message.reply_text('Database reseted!')
+
+
 def subreddit(update, context):
     logger.info("Received message: %s", update.message.text)
     subreddits = update.message.text.split(" ")[1].split(";")
@@ -31,8 +38,9 @@ def subreddit(update, context):
                 markdown_txt = f"[{_['title']}]({_['thread_link']})"
                 markdown_txt += f"\n{_['comment_link']}"
                 markdown_txt += f"\n**{_['score']} points**"
-                # update.message.reply_markdown(markdown_txt)
+                #update.message.reply_markdown(markdown_txt)
                 update.message.reply_text(markdown_txt)
+
 
 def error(update, context):
     """Log Errors caused by Updates."""
@@ -52,7 +60,7 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
-
+    dp.add_handler(CommandHandler("dbresset", ressetdb))
     dp.add_handler(MessageHandler(Filters.text, subreddit))
 
     # log all errors

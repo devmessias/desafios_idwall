@@ -8,18 +8,11 @@ pip-compile: install-pip-tools
 
 ## @category Dev-build
 ## Instala as dependências e configurações para o ambiente de desenvolvimento
-install-dev:
+install-dev-req:
 	pip install -r requirements_dev.txt
 	pip install -r requirements.txt
-	pre-commit install
 	python3 setup.py develop
 
-## Instala das dependências sem o pre-commit
-## Usado só para reduzir o tempo de instalacao no docker
-install-dev-no-precommit:
-	pip install -r requirements_dev.txt
-	pip install -r requirements.txt
-	python3 setup.py develop
 
 ## @category Dev-build
 ## Busca pelos dependências, resolve confiltos e atualiza as versões
@@ -32,39 +25,38 @@ sync-env: pip-compile
 test:
 	pytest -svv tests
 
-## @category Dev-Code Quality
-## Executa o pre-commit para verificar e executar todos os comandos
-## que garantem qualidade do código
-pre-commit:
-	pre-commit run --all-files
 
 ## @category Users
 ## Instala as dependências
-install:
+install-req:
 	pip install -r requirements.txt
 	python3 setup.py develop
 
-## @category Users
+## @category Database 
 ## Cria o banco de dados
 create-db:
 	python3 src/db/migration.py --create
+
+
+## @category Users
+## Instala as dependências e cria o banco de dados
+install: install-req create-db
+
+## @category Users
+## Instala as dependências dev e cria o banco de dados
+install-dev: install-dev-req create-db
+
 
 
 ## @category Telegram
 ## Inicia o bot telegram
 bot-start:
 	python3 src/telegram/app.py
-## @category Users
-## Executa o programa usando os parâmetros dentro de params.yaml
-run:
-	python3 src/main.py
 
 
 #################################################################################
 # Self Documenting Commands                                                     #
 #################################################################################
-# Nota para o Giant Steps: eu não programei esse auto help como descrito abaixo
-# sempre tenho isso salvo para usar
 .DEFAULT_GOAL := help
 
 # Inspired by <http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html>

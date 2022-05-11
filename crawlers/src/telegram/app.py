@@ -1,3 +1,6 @@
+"""
+Based on https://www.codementor.io/@karandeepbatra/part-1-how-to-create-a-telegram-bot-in-python-in-under-10-minutes-19yfdv4wrq # noqa
+"""
 import logging
 from dotenv import dotenv_values
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
@@ -38,7 +41,6 @@ def subreddit(update, context):
                 markdown_txt = f"[{_['title']}]({_['thread_link']})"
                 markdown_txt += f"\n{_['comment_link']}"
                 markdown_txt += f"\n**{_['score']} points**"
-                #update.message.reply_markdown(markdown_txt)
                 update.message.reply_text(markdown_txt)
 
 
@@ -50,8 +52,6 @@ def error(update, context):
 def main():
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
-    # Make sure to set use_context=True to use the new context based callbacks
-    # Post version 12 this will no longer be necessary
     updater = Updater(config["TELEGRAM_TOKEN"], use_context=True)
 
     # Get the dispatcher to register handlers
